@@ -734,6 +734,57 @@ npm run test:e2e
 
 ---
 
+# API Error Envelope
+
+All error responses from the Vaulty Backend follow a standard JSON envelope format:
+
+```json
+{
+  "success": false,
+  "message": "Error description message"
+}
+```
+
+In development environments (`NODE_ENV=development`), the response also includes the error stack trace:
+
+```json
+{
+  "success": false,
+  "message": "Error description message",
+  "stack": "Error stack trace..."
+}
+```
+
+## Validation Errors
+
+When a request payload fails validation, the response HTTP status code is `400 Bad Request` and includes a structured array of validation issues under the `errors` key:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "errors": [
+    {
+      "path": ["email"],
+      "message": "Invalid email address",
+      "code": "invalid_format"
+    },
+    {
+      "path": ["password"],
+      "message": "Password must be at least 8 characters",
+      "code": "too_small"
+    }
+  ]
+}
+```
+
+Each validation error entry contains:
+- `path`: An array of strings/numbers indicating the path to the invalid field (e.g., `["email"]`).
+- `message`: A human-readable description of the validation failure.
+- `code`: A stable, standardized error code representing the validation failure type (e.g., `invalid_type`, `invalid_format`, `too_small`, `too_big`).
+
+---
+
 # Roadmap
 
 ### Phase 1
