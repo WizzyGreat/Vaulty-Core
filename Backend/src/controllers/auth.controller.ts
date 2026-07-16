@@ -11,7 +11,6 @@ export class AuthController {
         message: 'Registration successful. Please check your email to verify your account.',
         data: {
           user: result.user,
-          verificationToken: result.verificationToken,
         },
       });
     } catch (error) {
@@ -71,6 +70,18 @@ export class AuthController {
   async verifyEmail(req: Request, res: Response, next: NextFunction) {
     try {
       const result = await authService.verifyEmail(req.body);
+      res.status(200).json({
+        success: true,
+        ...result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resendVerificationEmail(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await authService.resendVerificationEmail(req.body);
       res.status(200).json({
         success: true,
         ...result,

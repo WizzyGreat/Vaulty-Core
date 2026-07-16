@@ -1,8 +1,19 @@
 import { userRepository } from '../repositories/user.repository';
 import { AppError } from '../utils/AppError';
-import { hashPassword, comparePassword, generateSecureToken, generateTokenExpiry } from '../utils/crypto';
+import { hashPassword, comparePassword, generateSecureToken, generateTokenExpiry, hashToken } from '../utils/crypto';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken, TokenPayload } from '../utils/jwt';
-import type { RegisterInput, LoginInput, ForgotPasswordInput, ResetPasswordInput, VerifyEmailInput } from '../validators/auth.validator';
+import { queuePasswordResetEmail, queueVerificationEmail } from '../queues';
+import type {
+  RegisterInput,
+  LoginInput,
+  ForgotPasswordInput,
+  ResetPasswordInput,
+  VerifyEmailInput,
+  ResendVerificationEmailInput,
+} from '../validators/auth.validator';
+
+const EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 60 * 24;
+const PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = 60;
 
 export class AuthService {
   async register(data: RegisterInput) {
@@ -33,14 +44,19 @@ export class AuthService {
 
     // Generate email verification token
     const verificationToken = generateSecureToken();
-    const expiresAt = generateTokenExpiry(60 * 24); // 24 hours
-    await userRepository.createEmailVerificationToken(user.id, verificationToken, expiresAt);
+    const verificationTokenHash = hashToken(verificationToken);
+    const expiresAt = generateTokenExpiry(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES);
+    await userRepository.createEmailVerificationToken(user.id, verificationTokenHash, expiresAt);
 
-    // TODO: Send verification email (implement in email service)
+    await queueVerificationEmail({
+      to: user.email,
+      userId: user.id,
+      token: verificationToken,
+      expiresAt: expiresAt.toISOString(),
+    });
 
     return {
       user,
-      verificationToken,
     };
   }
 
@@ -117,17 +133,24 @@ export class AuthService {
 
     // Generate reset token
     const resetToken = generateSecureToken();
-    const expiresAt = generateTokenExpiry(60); // 1 hour
-    await userRepository.createPasswordResetToken(user.id, resetToken, expiresAt);
+    const resetTokenHash = hashToken(resetToken);
+    const expiresAt = generateTokenExpiry(PASSWORD_RESET_TOKEN_EXPIRY_MINUTES);
+    await userRepository.createPasswordResetToken(user.id, resetTokenHash, expiresAt);
 
-    // TODO: Send password reset email (implement in email service)
+    await queuePasswordResetEmail({
+      to: user.email,
+      userId: user.id,
+      token: resetToken,
+      expiresAt: expiresAt.toISOString(),
+    });
 
     return { message: 'If the email exists, a reset link has been sent' };
   }
 
   async resetPassword(data: ResetPasswordInput) {
     // Find valid token
-    const tokenRecord = await userRepository.findValidPasswordResetToken(data.token);
+    const tokenHash = hashToken(data.token);
+    const tokenRecord = await userRepository.findValidPasswordResetToken(tokenHash);
     if (!tokenRecord) {
       throw new AppError('Invalid or expired reset token', 400);
     }
@@ -147,14 +170,15 @@ export class AuthService {
     await userRepository.update(tokenRecord.userId, { passwordHash });
 
     // Invalidate token
-    await userRepository.invalidatePasswordResetToken(data.token);
+    await userRepository.invalidatePasswordResetToken(tokenHash);
 
     return { message: 'Password has been reset successfully' };
   }
 
   async verifyEmail(data: VerifyEmailInput) {
     // Find valid token
-    const tokenRecord = await userRepository.findValidEmailVerificationToken(data.token);
+    const tokenHash = hashToken(data.token);
+    const tokenRecord = await userRepository.findValidEmailVerificationToken(tokenHash);
     if (!tokenRecord) {
       throw new AppError('Invalid or expired verification token', 400);
     }
@@ -174,9 +198,34 @@ export class AuthService {
     });
 
     // Invalidate token
-    await userRepository.invalidateEmailVerificationToken(data.token);
+    await userRepository.invalidateEmailVerificationToken(tokenHash);
 
     return { message: 'Email has been verified successfully' };
+  }
+
+  async resendVerificationEmail(data: ResendVerificationEmailInput) {
+    const user = await userRepository.findByEmail(data.email);
+    const message = 'If the email exists and is unverified, a verification link has been sent';
+
+    if (!user || user.isEmailVerified) {
+      return { message };
+    }
+
+    await userRepository.invalidateUnusedEmailVerificationTokens(user.id);
+
+    const verificationToken = generateSecureToken();
+    const verificationTokenHash = hashToken(verificationToken);
+    const expiresAt = generateTokenExpiry(EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES);
+
+    await userRepository.createEmailVerificationToken(user.id, verificationTokenHash, expiresAt);
+    await queueVerificationEmail({
+      to: user.email,
+      userId: user.id,
+      token: verificationToken,
+      expiresAt: expiresAt.toISOString(),
+    });
+
+    return { message };
   }
 
   async getProfile(userId: string) {

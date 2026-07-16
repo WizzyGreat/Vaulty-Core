@@ -82,50 +82,60 @@ export class UserRepository {
     });
   }
 
-  async createPasswordResetToken(userId: string, token: string, expiresAt: Date) {
+  async createPasswordResetToken(userId: string, tokenHash: string, expiresAt: Date) {
     return prisma.passwordResetToken.create({
       data: {
         userId,
-        token,
+        tokenHash,
         expiresAt,
       },
     });
   }
 
-  async findValidPasswordResetToken(token: string) {
+  async findValidPasswordResetToken(tokenHash: string) {
     return prisma.passwordResetToken.findUnique({
-      where: { token },
+      where: { tokenHash },
       include: { user: true },
     });
   }
 
-  async invalidatePasswordResetToken(token: string) {
+  async invalidatePasswordResetToken(tokenHash: string) {
     return prisma.passwordResetToken.update({
-      where: { token },
+      where: { tokenHash },
       data: { used: true },
     });
   }
 
-  async createEmailVerificationToken(userId: string, token: string, expiresAt: Date) {
+  async createEmailVerificationToken(userId: string, tokenHash: string, expiresAt: Date) {
     return prisma.emailVerificationToken.create({
       data: {
         userId,
-        token,
+        tokenHash,
         expiresAt,
       },
     });
   }
 
-  async findValidEmailVerificationToken(token: string) {
+  async findValidEmailVerificationToken(tokenHash: string) {
     return prisma.emailVerificationToken.findUnique({
-      where: { token },
+      where: { tokenHash },
       include: { user: true },
     });
   }
 
-  async invalidateEmailVerificationToken(token: string) {
+  async invalidateEmailVerificationToken(tokenHash: string) {
     return prisma.emailVerificationToken.update({
-      where: { token },
+      where: { tokenHash },
+      data: { used: true },
+    });
+  }
+
+  async invalidateUnusedEmailVerificationTokens(userId: string) {
+    return prisma.emailVerificationToken.updateMany({
+      where: {
+        userId,
+        used: false,
+      },
       data: { used: true },
     });
   }

@@ -10,6 +10,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,
+  resendVerificationEmailSchema,
 } from '../validators/auth.validator';
 
 const router = Router();
@@ -21,6 +22,7 @@ router.post('/refresh-token', validate(refreshTokenSchema), authController.refre
 router.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
 router.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
 router.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
+router.post('/resend-verification-email', validate(resendVerificationEmailSchema), authController.resendVerificationEmail);
 
 // Protected routes
 router.get('/profile', authenticate, authController.getProfile);

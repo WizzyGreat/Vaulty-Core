@@ -294,8 +294,7 @@ Create a new user account.
       "isEmailVerified": false,
       "role": "USER",
       "createdAt": "2024-01-01T00:00:00.000Z"
-    },
-    "verificationToken": "abc123..."
+    }
   }
 }
 ```
@@ -304,6 +303,7 @@ Create a new user account.
 - Email must be valid and unique
 - Password must be at least 8 characters with uppercase, lowercase, and number
 - Phone number must be at least 10 digits (optional)
+- Verification links are delivered by email. Raw verification secrets are never returned in API responses.
 
 ---
 
@@ -439,6 +439,31 @@ Verify user email using verification token.
   "message": "Email has been verified successfully"
 }
 ```
+
+---
+
+## Resend Verification Email
+
+Queue a new verification email for an unverified account.
+
+**Endpoint:** `POST /api/v1/auth/resend-verification-email`
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "message": "If the email exists and is unverified, a verification link has been sent"
+}
+```
+
+Existing unused verification tokens are invalidated before a new email is queued.
 
 ---
 

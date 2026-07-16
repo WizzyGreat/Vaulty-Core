@@ -1,4 +1,4 @@
-import { createWorker, QUEUE_NAMES } from '../queues';
+import { createWorker, EmailJobData, QUEUE_NAMES } from '../queues';
 
 // Example job processors - to be expanded as needed
 
@@ -14,8 +14,13 @@ export const streakProcessor = async (job: any) => {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
 
-export const emailProcessor = async (job: any) => {
-  console.log('Processing email job:', job.id, job.data);
+export const emailProcessor = async (job: { id?: string; data: EmailJobData }) => {
+  console.log('Processing email job:', job.id, {
+    type: job.data.type,
+    to: job.data.to,
+    userId: job.data.userId,
+    expiresAt: job.data.expiresAt,
+  });
   // TODO: Implement email sending logic
   await new Promise((resolve) => setTimeout(resolve, 1000));
 };
