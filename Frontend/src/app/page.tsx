@@ -2,6 +2,7 @@
 
 import { useVault } from '@/hooks/useVault'
 import { usePaymentStatus } from '@/hooks/usePaymentStatus'
+import { useWallet } from '@/hooks/useWallet'
 import { FundingFlow } from '@/components/FundingFlow'
 import { WithdrawalFlow } from '@/components/WithdrawalFlow'
 import { PaymentStatusTracker } from '@/components/PaymentStatusTracker'
@@ -10,6 +11,7 @@ import { Card } from '@/components/Card'
 export default function Home() {
   const { vaults } = useVault()
   const { fundingOrders, withdrawalOrders } = usePaymentStatus()
+  const { wallet } = useWallet()
 
   const activeOrders = [...fundingOrders, ...withdrawalOrders].filter(
     (o) => o.status !== 'completed' && o.status !== 'failed' && o.status !== 'expired'
@@ -28,6 +30,31 @@ export default function Home() {
           <p className="text-lg text-slate-600">
             Save consistently. Grow your wealth. Unlock financial opportunities.
           </p>
+
+          {/* Wallet connection status */}
+          <div
+            className="inline-flex items-center gap-2 mt-4 px-3 py-1.5 rounded-full text-sm font-medium
+              bg-white border shadow-sm"
+            aria-label={
+              wallet.isConnected
+                ? `Wallet connected: ${wallet.publicKey}`
+                : 'Wallet disconnected'
+            }
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                wallet.isConnected ? 'bg-green-500' : 'bg-slate-400'
+              }`}
+              aria-hidden="true"
+            />
+            {wallet.isConnected && wallet.publicKey ? (
+              <span className="text-slate-700">
+                {wallet.publicKey.slice(0, 6)}&hellip;{wallet.publicKey.slice(-4)}
+              </span>
+            ) : (
+              <span className="text-slate-500">Not connected</span>
+            )}
+          </div>
         </div>
 
         {activeOrders.length > 0 && (
