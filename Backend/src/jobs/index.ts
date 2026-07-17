@@ -2,7 +2,6 @@ import { createWorker, QUEUE_NAMES, queuePaymentProcess } from '../queues';
 import { paymentRepository } from '../repositories/payment.repository';
 import { paymentAuditLogRepository } from '../repositories/payment-audit.repository';
 import { anchorService } from '../services/anchor.service';
-import { AppError } from '../utils/AppError';
 
 // Example job processors - to be expanded as needed
 
@@ -52,7 +51,7 @@ export const paymentProcessor = async (job: any) => {
     return;
   }
 
-  if (anchorService.isTerminalStatus(payment.status as any)) {
+  if (anchorService.isTerminalStatus(payment.status)) {
     console.log(`Payment ${paymentId} is in terminal state ${payment.status}, skipping`);
     return;
   }
@@ -77,6 +76,8 @@ export const paymentProcessor = async (job: any) => {
           timestampFields.reversedAt = new Date().toISOString();
         }
 
+        await paymentRepository.update(paymentId, timestampFields);
+
         await paymentAuditLogRepository.create({
           paymentId,
           action: AUDIT_ACTIONS.PROVIDER_CALLBACK,
@@ -89,7 +90,7 @@ export const paymentProcessor = async (job: any) => {
 
         console.log(`Payment ${paymentId} status updated: ${oldStatus} -> ${newStatus}`);
 
-        if (!anchorService.isTerminalStatus(newStatus as any)) {
+        if (!anchorService.isTerminalStatus(newStatus)) {
           await queuePaymentProcess({
             paymentId,
             type: 'POLL_STATUS',

@@ -4,7 +4,7 @@ export const initiateDepositSchema = z.object({
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, 'Amount must be a valid decimal number')
-    .refine((val) => parseFloat(val) > 0, 'Amount must be greater than 0'),
+    .refine((val: string) => parseFloat(val) > 0, 'Amount must be greater than 0'),
   asset: z.string().min(1, 'Asset is required').max(10).default('NGN'),
   method: z.enum(['BANK_TRANSFER', 'MOBILE_MONEY', 'CARD']),
   bankAccount: z
@@ -26,7 +26,7 @@ export const initiateWithdrawalSchema = z.object({
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, 'Amount must be a valid decimal number')
-    .refine((val) => parseFloat(val) > 0, 'Amount must be greater than 0'),
+    .refine((val: string) => parseFloat(val) > 0, 'Amount must be greater than 0'),
   asset: z.string().min(1, 'Asset is required').max(10).default('NGN'),
   method: z.enum(['BANK_TRANSFER', 'MOBILE_MONEY', 'CARD']),
   bankAccount: z

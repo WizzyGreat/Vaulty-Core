@@ -161,7 +161,7 @@ describe('PaymentService', () => {
       mockPaymentRepository.findById.mockResolvedValue(payment);
       mockPaymentRepository.update.mockResolvedValue({ ...payment, status: 'CANCELLED' });
 
-      const result = await paymentService.cancelPayment('payment-1', 'user-1');
+      await paymentService.cancelPayment('payment-1', 'user-1');
       expect(mockPaymentRepository.update).toHaveBeenCalledWith(
         'payment-1',
         expect.objectContaining({ status: 'CANCELLED' })
@@ -182,7 +182,7 @@ describe('PaymentService', () => {
       mockPaymentRepository.findById.mockResolvedValue(payment);
       mockPaymentRepository.update.mockResolvedValue({ ...payment, status: 'PENDING' });
 
-      const result = await paymentService.retryPayment('payment-1');
+      await paymentService.retryPayment('payment-1');
       expect(mockPaymentRepository.update).toHaveBeenCalledWith(
         'payment-1',
         expect.objectContaining({ status: 'PENDING' })

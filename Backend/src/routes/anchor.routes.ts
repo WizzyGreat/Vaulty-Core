@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { Request, Response, NextFunction } from 'express';
 import { anchorController } from '../controllers/anchor.controller';
 import { verifyWebhookSignature } from '../middleware/webhook';
 import { validate } from '../middleware/validator';

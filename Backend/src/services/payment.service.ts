@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import type { PaymentDirection, PaymentStatus } from '@prisma/client';
 import { paymentRepository, VALID_TRANSITIONS, PAYMENT_STATUS } from '../repositories/payment.repository';
 import { paymentAuditLogRepository } from '../repositories/payment-audit.repository';
 import { anchorService } from './anchor.service';
@@ -205,14 +206,14 @@ export class PaymentService {
           paymentId: payment.id,
           action: AUDIT_ACTIONS.PROVIDER_CALLBACK,
           oldStatus,
-          newStatus: newInternalStatus,
+          newStatus: newInternalStatus as PaymentStatus,
           description: 'Duplicate webhook ignored - payment already in terminal state',
         });
         return { processed: false, reason: 'Terminal state', paymentId: payment.id };
       }
     }
 
-    const updateData: Prisma.PaymentUncheckedUpdateInput = { status: newInternalStatus };
+    const updateData: Prisma.PaymentUncheckedUpdateInput = { status: newInternalStatus as PaymentStatus };
 
     if (payload.transactionHash) {
       updateData.stellarTransactionHash = payload.transactionHash;
@@ -221,14 +222,14 @@ export class PaymentService {
       updateData.failureReason = payload.failureReason;
     }
 
-    if (newInternalStatus === PAYMENT_STATUS.COMPLETED) {
+    if (newInternalStatus === 'COMPLETED') {
       updateData.confirmedAt = new Date();
       updateData.settledAt = new Date();
-    } else if (newInternalStatus === PAYMENT_STATUS.FAILED) {
+    } else if (newInternalStatus === 'FAILED') {
       updateData.failedAt = new Date();
-    } else if (newInternalStatus === PAYMENT_STATUS.REVERSED) {
+    } else if (newInternalStatus === 'REVERSED') {
       updateData.reversedAt = new Date();
-    } else if (newInternalStatus === PAYMENT_STATUS.CANCELLED) {
+    } else if (newInternalStatus === 'CANCELLED') {
       updateData.cancelledAt = new Date();
     }
 
@@ -238,7 +239,7 @@ export class PaymentService {
       paymentId: payment.id,
       action: AUDIT_ACTIONS.PROVIDER_CALLBACK,
       oldStatus,
-      newStatus: newInternalStatus,
+      newStatus: newInternalStatus as PaymentStatus,
       description: `Provider callback: ${payload.event}`,
       responsePayload: JSON.stringify(payload),
     });
@@ -256,7 +257,7 @@ export class PaymentService {
       throw new AppError('Payment not found', 404);
     }
 
-    if (payment.status !== PAYMENT_STATUS.CONFIRMED && payment.status !== PAYMENT_STATUS.PENDING) {
+    if (payment.status !== PAYMENT_STATUS.PROCESSING && payment.status !== PAYMENT_STATUS.PENDING) {
       throw new AppError(`Cannot settle payment in ${payment.status} status`, 400);
     }
 

@@ -204,7 +204,7 @@ describe('Anchor Integration Tests', () => {
 
   describe('POST /api/v1/anchor/webhooks/anchor', () => {
     it('should process valid webhook', async () => {
-      const payment = await paymentRepository.create({
+      await paymentRepository.create({
         userId: validUserId,
         direction: 'DEPOSIT',
         status: 'PENDING',
@@ -271,7 +271,7 @@ describe('Anchor Integration Tests', () => {
 
   describe('State machine validation', () => {
     it('should reject invalid state transitions', async () => {
-      const payment = await paymentRepository.create({
+      await paymentRepository.create({
         userId: validUserId,
         direction: 'DEPOSIT',
         status: 'COMPLETED',
@@ -286,7 +286,7 @@ describe('Anchor Integration Tests', () => {
       });
 
       const res = await request(app)
-        .post(`/api/v1/anchor/payments/${payment.id}/cancel`)
+        .post('/api/v1/anchor/payments/DEP-trans-1/cancel')
         .set('Authorization', getAuthHeader());
 
       expect(res.status).toBe(400);

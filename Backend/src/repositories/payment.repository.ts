@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../../database';
+import { prisma } from '../database';
 
 export const PAYMENT_STATUS = {
   INITIATED: 'INITIATED',
