@@ -25,8 +25,6 @@ import type {
   ResetPasswordInput,
   VerifyEmailInput,
   ResendVerificationEmailInput,
-  RefreshTokenInput,
-  LogoutInput,
 } from '../validators/auth.validator';
 
 const EMAIL_VERIFICATION_TOKEN_EXPIRY_MINUTES = 60 * 24;
@@ -199,15 +197,26 @@ export class AuthService {
         throw new AppError('Invalid or expired refresh token', 401);
       }
 
+      if (session.userId !== user.id) {
+        throw new AppError('Invalid or expired refresh token', 401);
+      }
+
       const familyId = session.familyId;
 
       // Atomically rotate: revoke the current token, then issue a new one in the
-      // same family. Using a transaction keeps the window race-free.
+      // same family. Using a transaction keeps the window race-free. If the
+      // session was already rotated by another request, fail instead of issuing
+      // a second replacement token.
       const newTokens = await prisma.$transaction(async (tx) => {
-        await prisma.refreshSession.updateMany({
+        const updateResult = await tx.refreshSession.updateMany({
           where: { tokenHash, revokedAt: null },
           data: { revokedAt: new Date(), revocationReason: 'LOGOUT' as any },
         });
+
+        if (updateResult.count === 0) {
+          throw new AppError('Refresh token has been revoked due to suspicious activity', 401);
+        }
+
         const issued = await this.issueSession(
           { id: user.id, email: user.email, role: user.role, tokenVersion: user.tokenVersion },
           {
@@ -319,7 +328,7 @@ export class AuthService {
    * must still be valid (present and unrevoked) so an attacker cannot use the
    * endpoint to destroy a victim's sessions without the raw token.
    */
-  async logout(rawRefreshToken: string) {
+  async logout(userId: string, rawRefreshToken: string) {
     if (!rawRefreshToken) {
       throw new AppError('Refresh token is required', 400);
     }
@@ -332,8 +341,16 @@ export class AuthService {
 
     const tokenHash = hashToken(rawRefreshToken);
     const session = await userRepository.findRefreshSessionByTokenHash(tokenHash);
-    if (!session || session.revokedAt) {
+    if (!session) {
+      throw new AppError('Session not found', 404);
+    }
+
+    if (session.revokedAt) {
       throw new AppError('Session already ended', 401);
+    }
+
+    if (session.userId !== userId) {
+      throw new AppError('Session not found', 404);
     }
 
     const { count } = await userRepository.revokeRefreshSession(tokenHash, 'LOGOUT');

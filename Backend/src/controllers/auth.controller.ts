@@ -114,7 +114,12 @@ export class AuthController {
 
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await authService.logout(req.body.refreshToken);
+      const userId = (req as any).user?.userId;
+      if (!userId) {
+        throw new AppError('User not authenticated', 401);
+      }
+
+      const result = await authService.logout(userId, req.body.refreshToken);
       res.status(200).json({
         success: true,
         message: result.message,

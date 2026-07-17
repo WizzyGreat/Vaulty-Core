@@ -19,7 +19,6 @@ export const generateAccessToken = (payload: TokenPayload): string => {
 export const generateRefreshToken = (payload: TokenPayload): string => {
   return jwt.sign(payload, config.jwt.refreshTokenSecret, {
     expiresIn: config.jwt.refreshTokenExpiry,
-    jwtid: payload.jti,
   } as jwt.SignOptions);
 };
 
