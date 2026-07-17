@@ -76,6 +76,12 @@ export class AuthService {
     // Update last login
     await userRepository.update(user.id, { lastLoginAt: new Date() });
 
+    // Opportunistically clean up expired tokens on login; fire-and-forget so
+    // it never blocks the response or surfaces errors to the caller.
+    userRepository.cleanupExpiredTokens().catch((err) => {
+      console.error('cleanupExpiredTokens failed:', err);
+    });
+
     // Generate tokens
     const tokenPayload: TokenPayload = {
       userId: user.id,
