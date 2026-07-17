@@ -3,10 +3,16 @@ import { AppError } from '../../src/utils/AppError';
 
 jest.mock('../../src/repositories/payment.repository');
 jest.mock('../../src/repositories/payment-audit.repository');
-jest.mock('../../src/queues');
 
 const mockPaymentRepository = require('../../src/repositories/payment.repository').paymentRepository;
 const mockAuditRepository = require('../../src/repositories/payment-audit.repository').paymentAuditLogRepository;
+
+const mockQueueAdd = jest.fn().mockResolvedValue({ id: 'job-1' });
+jest.mock('../../src/queues', () => ({
+  getPaymentQueue: jest.fn(() => ({
+    add: mockQueueAdd,
+  })),
+}));
 
 const createMockPayment = (overrides?: any) => ({
   id: 'payment-1',

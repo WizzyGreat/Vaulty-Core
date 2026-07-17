@@ -68,7 +68,7 @@ export const getPaymentHistorySchema = z.object({
 
 export const webhookCallbackSchema = z.object({
   event: z.string().min(1),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
 });
 
 export type InitiateDepositInput = z.infer<typeof initiateDepositSchema>;

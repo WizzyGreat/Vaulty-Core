@@ -329,9 +329,13 @@ export class PaymentService {
       throw new AppError('Payment not found', 404);
     }
 
-    await this.ensureTransition(paymentId, PAYMENT_STATUS.INITIATED, PAYMENT_STATUS.CANCELLED);
-    await this.ensureTransition(paymentId, PAYMENT_STATUS.PENDING, PAYMENT_STATUS.CANCELLED);
-    await this.ensureTransition(paymentId, PAYMENT_STATUS.REQUIRES_ACTION, PAYMENT_STATUS.CANCELLED);
+    const allowedCancelStatuses = [PAYMENT_STATUS.INITIATED, PAYMENT_STATUS.PENDING, PAYMENT_STATUS.REQUIRES_ACTION] as string[];
+    if (!allowedCancelStatuses.includes(payment.status)) {
+      throw new AppError(
+        `Invalid state transition: cannot cancel payment in ${payment.status} status`,
+        400
+      );
+    }
 
     await paymentRepository.update(paymentId, {
       status: PAYMENT_STATUS.CANCELLED,
@@ -341,6 +345,7 @@ export class PaymentService {
     await paymentAuditLogRepository.create({
       paymentId,
       action: AUDIT_ACTIONS.CANCELLED,
+      oldStatus: payment.status as any,
       newStatus: PAYMENT_STATUS.CANCELLED,
       description: 'Payment cancelled by user',
     });

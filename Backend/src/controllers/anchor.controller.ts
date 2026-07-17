@@ -44,7 +44,12 @@ export class AnchorController {
         throw new AppError('User not authenticated', 401);
       }
 
-      const payment = await paymentService.getPaymentStatus(userId, req.params.paymentId);
+      const paymentId = req.params.paymentId as string;
+      if (!paymentId) {
+        throw new AppError('Payment ID is required', 400);
+      }
+
+      const payment = await paymentService.getPaymentStatus(userId, paymentId);
       res.status(200).json({
         success: true,
         data: { payment },
@@ -78,7 +83,12 @@ export class AnchorController {
         throw new AppError('User not authenticated', 401);
       }
 
-      const result = await paymentService.requestInstructions(req.params.paymentId, userId);
+      const paymentId = req.params.paymentId as string;
+      if (!paymentId) {
+        throw new AppError('Payment ID is required', 400);
+      }
+
+      const result = await paymentService.requestInstructions(paymentId, userId);
       res.status(200).json({
         success: true,
         data: result,
@@ -95,7 +105,12 @@ export class AnchorController {
         throw new AppError('User not authenticated', 401);
       }
 
-      const payment = await paymentService.cancelPayment(req.params.paymentId, userId);
+      const paymentId = req.params.paymentId as string;
+      if (!paymentId) {
+        throw new AppError('Payment ID is required', 400);
+      }
+
+      const payment = await paymentService.cancelPayment(paymentId, userId);
       res.status(200).json({
         success: true,
         data: { payment },
@@ -112,7 +127,12 @@ export class AnchorController {
         throw new AppError('User not authenticated', 401);
       }
 
-      const payment = await paymentService.retryPayment(req.params.paymentId);
+      const paymentId = req.params.paymentId as string;
+      if (!paymentId) {
+        throw new AppError('Payment ID is required', 400);
+      }
+
+      const payment = await paymentService.retryPayment(paymentId);
       res.status(200).json({
         success: true,
         data: { payment },
